@@ -21,9 +21,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 
-# ---------------------------------------------------------
-# FIELD
-# ---------------------------------------------------------
 
 class FieldSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,9 +28,7 @@ class FieldSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ---------------------------------------------------------
-# DEVICE
-# ---------------------------------------------------------
+
 
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,9 +36,7 @@ class DeviceSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ---------------------------------------------------------
-# TELEMETRY
-# ---------------------------------------------------------
+
 
 class TelemetrySerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,9 +44,7 @@ class TelemetrySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ---------------------------------------------------------
-# ALERT
-# ---------------------------------------------------------
+
 
 class AlertSerializer(serializers.ModelSerializer):
     class Meta:
