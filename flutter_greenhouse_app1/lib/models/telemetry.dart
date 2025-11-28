@@ -14,7 +14,7 @@ class Telemetry {
   factory Telemetry.fromJson(Map<String, dynamic> json) {
     return Telemetry(
       id: json['id'], // REST API envoie id
-      deviceId: json['device_id'], // WebSocket ET API
+      deviceId: json['device'], // WebSocket ET API
       value: (json['value'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp']),
     );
