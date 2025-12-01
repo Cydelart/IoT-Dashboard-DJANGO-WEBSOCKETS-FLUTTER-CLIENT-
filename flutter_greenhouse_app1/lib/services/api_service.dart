@@ -1,98 +1,134 @@
-// lib/services/api_service.dart
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
 import '../models/telemetry.dart';
+import '../models/alert.dart';
+import '../auth_service.dart';
 
 class ApiService {
-  // 👉 If you test on Android emulator, change host to "10.0.2.2:8000"
-  static const String _baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://127.0.0.1:8000/api';
 
-  final http.Client _client;
+  /// Headers avec Authorization si token dispo
+  Map<String, String> _headers({bool jsonContent = true}) {
+    final token = AuthService.token;
 
-  ApiService({http.Client? client}) : _client = client ?? http.Client();
-
-  Uri _buildUri(String path, [Map<String, dynamic>? queryParams]) {
-    final uri = Uri.parse('$_baseUrl$path');
-    if (queryParams == null) return uri;
-    return uri.replace(
-      queryParameters: queryParams.map(
-        (key, value) => MapEntry(key, value.toString()),
-      ),
-    );
+    final headers = <String, String>{};
+    if (jsonContent) {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
-  // ───────────────────────────── FIELDS ─────────────────────────────
+  /// Liste des devices
+  Future<List<dynamic>> getDevices() async {
+    final url = Uri.parse('$baseUrl/devices/');
 
-  /// GET /api/fields/
-  /// Returns a List<dynamic> where each element is a JSON map
-  Future<List<dynamic>> getFields() async {
-    final url = _buildUri('/api/fields/');
-    final response = await _client.get(url);
+    final response = await http.get(url, headers: _headers(jsonContent: false));
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body) as List<dynamic>;
+      final decoded = json.decode(response.body);
+      if (decoded is List) {
+        return decoded;
+      } else {
+        throw Exception('Unexpected devices format: ${decoded.runtimeType}');
+      }
     } else {
-      throw Exception('Failed to load fields (status: ${response.statusCode})');
+      throw Exception('Failed to load devices (status ${response.statusCode})');
     }
   }
 
-  // ───────────────────────────── DEVICES ─────────────────────────────
-
-  /// GET /api/devices/
-  /// Optionally filter by field: /api/devices/?field=<id>
-  Future<List<dynamic>> getDevices({int? fieldId}) async {
-    final params = <String, dynamic>{};
-    if (fieldId != null) {
-      // only if your Django DeviceViewSet supports ?field= filtering
-      params['field'] = fieldId;
-    }
-
-    final url = _buildUri('/api/devices/', params.isEmpty ? null : params);
-    final response = await _client.get(url);
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as List<dynamic>;
-    } else {
-      throw Exception(
-        'Failed to load devices (status: ${response.statusCode})',
-      );
-    }
-  }
-
-  // ───────────────────────────── TELEMETRY ─────────────────────────────
-
-  /// Historical telemetry for one device.
-  ///
-  /// Version 1 (most common in DRF):
-  ///   GET /api/telemetry/?device=<id>
-  ///
-  /// If you later change your backend to:
-  ///   /api/devices/<id>/telemetry/
-  /// then just update the `url` variable below.
+  /// Historique de télémétrie pour un device
   Future<List<Telemetry>> getDeviceTelemetry(int deviceId) async {
-    // 1) If your TelemetryViewSet uses ?device=<id>:
-    final url = _buildUri('/api/telemetry/', {'device': deviceId});
+    final url = Uri.parse('$baseUrl/devices/$deviceId/telemetry/');
 
-    // 2) If you used a nested route instead, comment the line above and use:
-    // final url = _buildUri('/api/devices/$deviceId/telemetry/');
-
-    final response = await _client.get(url);
+    final response = await http.get(url, headers: _headers(jsonContent: false));
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
-      return data.map((json) => Telemetry.fromJson(json)).toList();
+      final decoded = json.decode(response.body);
+
+      if (decoded is List) {
+        return decoded
+            .map((e) => Telemetry.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      // si DRF est configuré avec pagination
+      if (decoded is Map && decoded['results'] is List) {
+        final list = decoded['results'] as List;
+        return list
+            .map((e) => Telemetry.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      throw Exception('Unexpected telemetry format: ${decoded.runtimeType}');
     } else {
       throw Exception(
-        'Failed to load telemetry (status: ${response.statusCode})',
+        'Failed to load telemetry (status ${response.statusCode})',
       );
     }
   }
 
-  // ───────────────────────────── CLEANUP ─────────────────────────────
+  /// Création d’une télémétrie via l’API
+  /// Utile pour tester le temps réel depuis Flutter
+  Future<Telemetry> createTelemetry({
+    required int deviceId,
+    required double value,
+    required DateTime timestamp,
+  }) async {
+    final url = Uri.parse('$baseUrl/telemetry/');
 
-  void dispose() {
-    _client.close();
+    final body = json.encode({
+      'device': deviceId,
+      'value': value,
+      'timestamp': timestamp.toIso8601String(),
+    });
+
+    final response = await http.post(url, headers: _headers(), body: body);
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final decoded = json.decode(response.body) as Map<String, dynamic>;
+      return Telemetry.fromJson(decoded);
+    } else {
+      throw Exception(
+        'Failed to create telemetry (status ${response.statusCode})',
+      );
+    }
+  }
+
+  /// Liste des alertes d’un device
+  Future<List<AlertModel>> getDeviceAlerts(int deviceId) async {
+    final url = Uri.parse('$baseUrl/devices/$deviceId/alerts/');
+
+    final response = await http.get(url, headers: _headers(jsonContent: false));
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+
+      if (decoded is List) {
+        return decoded
+            .map((e) => AlertModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      throw Exception('Unexpected alerts format: ${decoded.runtimeType}');
+    } else {
+      throw Exception('Failed to load alerts (status ${response.statusCode})');
+    }
+  }
+
+  /// Marquer une alerte comme résolue (admin only)
+  Future<void> resolveAlert(int alertId) async {
+    final url = Uri.parse('$baseUrl/alerts/$alertId/resolve/');
+
+    final response = await http.post(url, headers: _headers());
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to resolve alert (status ${response.statusCode})',
+      );
+    }
   }
 }

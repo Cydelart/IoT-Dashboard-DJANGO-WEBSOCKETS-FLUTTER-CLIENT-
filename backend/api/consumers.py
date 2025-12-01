@@ -6,6 +6,11 @@ import json
 class TelemetryConsumer(AsyncWebsocketConsumer):
     #fct auto quand flutter ouvre cnx websocket
     async def connect(self):
+        user = self.scope.get("user")
+        # Si pas connecté -> on refuse la connexion
+        if user is None or user.is_anonymous:
+            await self.close()
+            return
         #recuperer l id de l url de websocket
         self.device_id = self.scope["url_route"]["kwargs"]["device_id"]
         #creation d un nom de groupe
