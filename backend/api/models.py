@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 
 
 class Field(models.Model):
+    owner = models.ForeignKey(User,on_delete=models.CASCADE,related_name="fields",null=True, blank=True) # pour éviter les erreurs au début si tu as déjà des données
     name = models.CharField(max_length=100)
     crop_type = models.CharField(max_length=100, blank=True)         
     variety = models.CharField(max_length=100, blank=True)           
@@ -17,7 +18,8 @@ class Field(models.Model):
     irrigation_type = models.CharField(
         max_length=50,
         blank=True,
-        help_text="e.g. drip, sprinkler, sprinkler",)
+        help_text="e.g. drip, sprinkler, sprinkler",
+    )
     
     farmer = models.ForeignKey(
         User,
@@ -28,17 +30,16 @@ class Field(models.Model):
     )
 
     area_m2 = models.FloatField(
-    help_text="Area of the field in square meters",
-)
-
+        null=True,
+        blank=True,
+        help_text="Area of the field in square meters",
+    )
 
     def __str__(self):
         return self.name
 
-    
 
 class Device(models.Model):
-    
     name = models.CharField(max_length=100)
 
     field = models.ForeignKey(
@@ -69,8 +70,6 @@ class Device(models.Model):
     
 
 
-
-
 class Telemetry(models.Model):
     device = models.ForeignKey(
         Device,
@@ -78,15 +77,13 @@ class Telemetry(models.Model):
         related_name="telemetry",
     )
     processed_by_rule = models.BooleanField(default=False)
-
-
+    # flag to avoid processing a value twice in automation rules
 
     value = models.FloatField()
 
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # how do we want to order telemetery ? ordre descending by timestamp
         ordering = ["-timestamp"]
 
     def __str__(self):
@@ -119,9 +116,6 @@ class Alert(models.Model):
 
     def __str__(self):
         return f"[{self.severity}] {self.device.name}: {self.message}"
-    
-
-    
 
 class Actuator(models.Model):
     name = models.CharField(max_length=50)

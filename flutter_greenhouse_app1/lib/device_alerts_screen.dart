@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 
 import 'services/api_service.dart';
 import 'models/alert.dart';
 import 'auth_service.dart';
+=======
+import 'services/api_service.dart';
+import 'models/alert.dart';
+import 'services/auth_service.dart';
+>>>>>>> b8df76b (final version)
 
 class DeviceAlertsScreen extends StatefulWidget {
   final int deviceId;

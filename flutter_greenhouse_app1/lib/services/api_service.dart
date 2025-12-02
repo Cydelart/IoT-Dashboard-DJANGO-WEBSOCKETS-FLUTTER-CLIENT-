@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 import '../models/telemetry.dart';
 import '../models/alert.dart';
+<<<<<<< HEAD
 import '../auth_service.dart';
+=======
+import 'auth_service.dart';
+>>>>>>> b8df76b (final version)
 
 class ApiService {
   static const String baseUrl = 'http://127.0.0.1:8000/api';

@@ -1,11 +1,10 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from .influx import get_history  # ton code pour lire InfluxDB
 
-#controler la communication websocket 
-#quand flutter se connecte django channels envoie les cnx ici
 class TelemetryConsumer(AsyncWebsocketConsumer):
-    #fct auto quand flutter ouvre cnx websocket
     async def connect(self):
+<<<<<<< HEAD
         user = self.scope.get("user")
         # Si pas connecté -> on refuse la connexion
         if user is None or user.is_anonymous:
@@ -17,12 +16,20 @@ class TelemetryConsumer(AsyncWebsocketConsumer):
         self.group_name = f"device_{self.device_id}"
         #ajouter client flutter dans le grp
         await self.channel_layer.group_add(self.group_name, self.channel_name)
+=======
+        self.device_id = self.scope['url_route']['kwargs']['device_id']
+>>>>>>> b8df76b (final version)
         await self.accept()
 
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        # Envoi des dernières données à la connexion
+        history = get_history(int(self.device_id))
+        print(history)  # <-- Ajoute ça pour voir si tu récupères quelque chose
+        for h in history:
+            await self.send(text_data=json.dumps(h))
 
-    # Lien direct avec  code perform_create dans views.py
-    async def send_telemetry(self, event):
-        data = event["data"]
-        await self.send(text_data=json.dumps(data)) #transformer les donnes en json et envois dans la cnx websocket
+    async def disconnect(self, close_code):
+        pass
+
+    # Ici tu pourrais gérer les messages venant de Flutter si besoin
+    async def receive(self, text_data):
+        pass

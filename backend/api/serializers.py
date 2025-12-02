@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User , Group
 from .models import (
     Field,
     Device,
@@ -11,6 +11,27 @@ from .models import (
     UserProfile,
 )
 
+#end point mtaa login 
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "password"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = User.objects.create_user(
+            password=password,
+            **validated_data
+        )
+
+        # Par défaut, on met le user dans le groupe "farmer"
+        farmer_group, created = Group.objects.get_or_create(name="farmer")
+        user.groups.add(farmer_group)
+
+        return user
+
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -21,6 +42,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 
+# ---------------------------------------------------------
+# FIELD
+# ---------------------------------------------------------
 
 class FieldSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,7 +52,9 @@ class FieldSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-
+# ---------------------------------------------------------
+# DEVICE
+# ---------------------------------------------------------
 
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -36,7 +62,9 @@ class DeviceSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-
+# ---------------------------------------------------------
+# TELEMETRY
+# ---------------------------------------------------------
 
 class TelemetrySerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,7 +72,9 @@ class TelemetrySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-
+# ---------------------------------------------------------
+# ALERT
+# ---------------------------------------------------------
 
 class AlertSerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,19 +86,20 @@ class AlertSerializer(serializers.ModelSerializer):
 class ActuatorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Actuator
-        fields = '_all_'
+        fields = '__all__'
 
 class ActuatorCommandSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActuatorCommand
-        fields = '_all_'
+        fields = '__all__'
+
 
 class ThresholdRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ThresholdRule
-        fields = '_all_'
+        fields = '__all__'
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = '_all_'
+        fields = '__all__'
